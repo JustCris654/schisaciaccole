@@ -16,7 +16,7 @@ export component MainWindow inherits Window {
     callback start-pause();
     callback stop();
     callback select-time(int);
-    callback compute-selection();
+    callback compute-options();
 
     timer := Timer {
 	interval  : 1s;
@@ -32,13 +32,13 @@ export component MainWindow inherits Window {
 	}
     }
 
-    compute-selection-timer := Timer {
-	interval  : 10s;
+    compute-options-timer := Timer {
+	interval  : 3s;
 	running: !running-state;
 	
 	triggered() => {
 	    // when the main timer is stopped keep updating the selection
-	    compute-selection();
+	    compute-options();
 	}
     }
 

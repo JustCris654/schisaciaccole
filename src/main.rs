@@ -6,14 +6,12 @@ slint::include_modules!();
 
 struct AppState {
     opts_time: Vec<DateTime<Local>>,
-    opts_text: Vec<SharedString>,
 
     slint_model: Rc<VecModel<SharedString>>,
 }
 
 fn compute_options() -> (Vec<DateTime<Local>>, Vec<SharedString>) {
     let now: DateTime<Local> = Local::now();
-    println!("Current time : {}", now);
 
     let minutes_to_next_quarter = 15 - (now.minute() % 15);
 
@@ -39,13 +37,12 @@ fn main() -> Result<(), slint::PlatformError> {
     // let timer = slint::Timer::default();
 
     let (opts_time, opts_text) = compute_options();
-    let slint_model = Rc::new(VecModel::from(opts_text.clone()));
+    let slint_model = Rc::new(VecModel::from(opts_text));
 
     main_window.set_time_options(ModelRc::from(slint_model.clone()));
 
     let app_state = Rc::new(RefCell::new(AppState{
         opts_time,
-        opts_text,
         slint_model,
     }));
 
@@ -62,11 +59,16 @@ fn main() -> Result<(), slint::PlatformError> {
             let now: DateTime<Local> = Local::now();
             let target_time = state.opts_time[idx];
             let remaining_time = target_time - now;
+
+            println!("remaining time: {} = {}", remaining_time, remaining_time.num_seconds());
+
             let rem_seconds = if remaining_time.num_seconds() > 0 {
                 remaining_time.num_seconds()
             } else {
-                (Duration::minutes(15) - remaining_time).num_seconds()
+                Duration::minutes(15).num_seconds() + remaining_time.num_seconds()
             };
+
+            println!("rem seconds: {}", rem_seconds);
 
             window.set_timer_time(rem_seconds * 1000);
             window.set_page(Page::TimerPage);
@@ -103,17 +105,18 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    // main_window.on_compute_selection({
-    //     let window_weak = main_window.as_weak();
+    main_window.on_compute_options({
+        let state_clone = app_state.clone();
 
-    //     move || {
-    //         let window = window_weak.unwrap();
+        move || {
+            let mut state = state_clone.borrow_mut();
 
-    //         window.set_running_state(false);
-    //         window.set_timer_time(0);
-    //         window.set_page(Page::SelectionPage);
-    //     }
-    // });
+            let (new_times, new_texts) = compute_options();
+
+            state.opts_time = new_times;
+            state.slint_model.set_vec(new_texts);
+        }
+    });
 
 
     main_window.run()
