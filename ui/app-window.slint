@@ -1,0 +1,84 @@
+import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
+
+export component MainWindow inherits Window {
+    title: "Schisaciaccole";
+    preferred-width: 526px; 
+    preferred-height: 326px;
+
+    in-out property <int> milliseconds-elapsed: 485400;
+    in-out property <bool> running-state: false;
+
+    timer := Timer {
+	interval  : 1ms;
+	running: running-state;
+	
+	triggered() => {
+	    if (running-state) {
+		milliseconds-elapsed -= 1;
+	    }
+	    if (milliseconds-elapsed == 0) {
+		running-state = false;
+	    }
+	}
+    }
+
+    property <int> seconds-elapsed: Math.floor(milliseconds-elapsed / 100);
+    property <int> minutes: Math.floor(seconds-elapsed / 60);
+    property <int> seconds: Math.mod(seconds-elapsed, 60);
+    property <string> displayTimer: 
+        (minutes < 10 ? "0" : "") + minutes + ":" +
+        (seconds < 10 ? "0" : "") + seconds;
+
+    callback start-pause();
+    callback reset();
+
+    VerticalBox {
+	alignment: center;
+
+	Text {
+	    text: displayTimer;
+	    font-size: 48pt;
+	    horizontal-alignment: center;
+	}
+
+	HorizontalBox {
+	    alignment: center;
+
+	    Button {
+		text: running-state ? "Pause" : "Start";
+		clicked => { start-pause(); }
+	    }
+
+	    Button {
+		text: "Reset";
+		clicked => { reset(); }
+	    }
+	}
+    }
+}
+
+
+export component StartWithZeroMillis inherits Window {
+    title: "Schisaciaccole";
+    preferred-width: 326px; 
+    preferred-height: 226px;
+    always-on-top: true;
+
+
+    VerticalBox {
+	alignment: center;
+
+	Text {
+	    text: "You've been bad!";
+	    color: red;
+	    font-size: 32pt;
+	    horizontal-alignment: center;
+	}
+
+	Text {
+	    text: "You can't start a timer with 0 seconds";
+	    font-size: 18pt;
+	    horizontal-alignment: center;
+	}
+    }
+}
