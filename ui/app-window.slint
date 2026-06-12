@@ -1,39 +1,85 @@
 import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 
+export enum Page { SelectionPage, TimerPage }
+
 export component MainWindow inherits Window {
     title: "Schisaciaccole";
     preferred-width: 526px; 
     preferred-height: 326px;
 
-    in-out property <int> milliseconds-elapsed: 485400;
-    in-out property <bool> running-state: false;
+    in-out property <duration> timer-time: 3s;
+    in-out property <bool>     running-state: false;
+    in-out property <Page>     page: SelectionPage; 
+    in property     <[string]> time_options;
+
+
+    callback start-pause();
+    callback stop();
+    callback select-time(int);
+    callback compute-selection();
 
     timer := Timer {
-	interval  : 1ms;
+	interval  : 1s;
 	running: running-state;
 	
 	triggered() => {
 	    if (running-state) {
-		milliseconds-elapsed -= 1;
-	    }
-	    if (milliseconds-elapsed == 0) {
-		running-state = false;
+		timer-time -= 1s;
+		if (timer-time <= 0) {
+		    stop();
+		}
+	    } 
+	}
+    }
+
+    compute-selection-timer := Timer {
+	interval  : 10s;
+	running: !running-state;
+	
+	triggered() => {
+	    // when the main timer is stopped keep updating the selection
+	    compute-selection();
+	}
+    }
+
+    property <int> hours  : Math.floor(timer-time / 60s / 60);
+    property <int> minutes: Math.floor(Math.mod(timer-time / 60s, 60));
+    property <int> seconds: Math.mod(timer-time / 1s, 60);
+    property <string> displayTimer: 
+        (hours >= 1 ? "0" + hours + ":" : "") +
+        (minutes < 10 ? "0" : "") + minutes + ":" +
+        (seconds < 10 ? "0" : "") + seconds;
+
+
+
+    // render this if page is SelectionPage
+    if page == Page.SelectionPage : VerticalBox {
+	alignment: center;
+
+
+	Text {
+	    text: "Scegli opzione:";
+	    font-size: 22pt;
+	    horizontal-alignment: start;
+	}
+
+	GridLayout {
+	    spacing: 10px;
+
+	    for option[index] in root.time_options: Button {
+		row: Math.floor(index / 4);
+		col: Math.mod(index, 4);
+
+		text: option;
+		clicked => { select-time(index); }
 	    }
 	}
     }
 
-    property <int> seconds-elapsed: Math.floor(milliseconds-elapsed / 100);
-    property <int> minutes: Math.floor(seconds-elapsed / 60);
-    property <int> seconds: Math.mod(seconds-elapsed, 60);
-    property <string> displayTimer: 
-        (minutes < 10 ? "0" : "") + minutes + ":" +
-        (seconds < 10 ? "0" : "") + seconds;
-
-    callback start-pause();
-    callback reset();
-
-    VerticalBox {
+    // render this if page is TimerPage
+    if page == Page.TimerPage : VerticalBox {
 	alignment: center;
+
 
 	Text {
 	    text: displayTimer;
@@ -44,17 +90,18 @@ export component MainWindow inherits Window {
 	HorizontalBox {
 	    alignment: center;
 
-	    Button {
-		text: running-state ? "Pause" : "Start";
-		clicked => { start-pause(); }
-	    }
+	    // Button {
+	    // 	text: running-state ? "Pause" : "Start";
+	    // 	clicked => { start-pause(); }
+	    // }
 
 	    Button {
-		text: "Reset";
-		clicked => { reset(); }
+		text: "Stop";
+		clicked => { stop(); }
 	    }
 	}
     }
+    
 }
 
 
