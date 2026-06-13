@@ -34,12 +34,16 @@ pressed the button.
 ## Requirements
 
 - [Rust](https://www.rust-lang.org/tools/install) (stable toolchain, `cargo`)
-- The **Chillax** font (see below — not bundled)
 
-## Font setup (required)
+The default font (**Plus Jakarta Sans**) is bundled — no extra setup needed.
 
-The app uses **Chillax** as its default font. It is **not** included in this
-repo — you have to download it yourself.
+## Font setup (optional)
+
+The app ships with **Plus Jakarta Sans** bundled, so it works out of the box.
+
+**Chillax** looks nicer and is the preferred font, but it is **not** bundled —
+to use it, download it and swap two pairs of commented lines in
+[`ui/app-window.slint`](ui/app-window.slint).
 
 1. Download Chillax: <https://api.fontshare.com/v2/fonts/download/chillax>
 2. Unzip it.
@@ -49,8 +53,19 @@ repo — you have to download it yourself.
    ui/assets/fonts/Chillax_Variable/Fonts/OTF/Chillax-Medium.otf
    ```
 
-If the file is missing or in the wrong place the build/render will fail to find
-the font.
+4. In `ui/app-window.slint`, swap the comments on the import lines (top of file):
+
+   ```slint
+   import "../assets/fonts/Chillax_Variable/Fonts/OTF/Chillax-Medium.otf";
+   // import "../assets/fonts/Plus_Jakarta_Sans/static/PlusJakartaSans-Medium.ttf";
+   ```
+
+5. ...and on the `default-font-family` lines inside `MainWindow`:
+
+   ```slint
+   // default-font-family: "Plus Jakarta Sans";
+   default-font-family: "Chillax";
+   ```
 
 ## Build & run
 

@@ -1,7 +1,7 @@
 import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 
-import "../assets/fonts/Chillax_Variable/Fonts/OTF/Chillax-Medium.otf";
-// import "../assets/fonts/Plus_Jakarta_Sans/static/PlusJakartaSans-Medium.ttf";
+// import "../assets/fonts/Chillax_Variable/Fonts/OTF/Chillax-Medium.otf";
+import "../assets/fonts/Plus_Jakarta_Sans/static/PlusJakartaSans-Medium.ttf";
 
 export enum Page { SelectionPage, TimerPage }
 
@@ -27,8 +27,8 @@ export component MainWindow inherits Window {
     title: "Schisaciaccole";
     preferred-width: 526px; 
     preferred-height: 326px;
-    // default-font-family: "Plus Jakarta Sans";
-    default-font-family: "Chillax";
+    default-font-family: "Plus Jakarta Sans";
+    // default-font-family: "Chillax";
 
     property <float> ui-scale: Math.min(root.width / 526px, root.height / 326px);
 
