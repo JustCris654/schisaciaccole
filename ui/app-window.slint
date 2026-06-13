@@ -42,6 +42,7 @@ export component MainWindow inherits Window {
     callback stop();
     callback select-time(int);
     callback compute-options();
+    callback play-sound();
 
     timer := Timer {
 	interval  : 1s;
@@ -52,6 +53,7 @@ export component MainWindow inherits Window {
 		timer-time -= 1s;
 		if (timer-time <= 0) {
 		    stop();
+		    play-sound();
 		}
 	    } 
 	}

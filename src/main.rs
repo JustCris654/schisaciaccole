@@ -1,6 +1,9 @@
 use chrono::{prelude::*, Duration};
+use rodio::{DeviceSinkBuilder, Player, Decoder};
+use rodio::source::{SineWave, Source};
 use slint::{ModelRc, SharedString, VecModel};
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, io::BufReader, rc::Rc, thread};
+use std::fs::File;
 
 slint::include_modules!();
 
@@ -27,6 +30,33 @@ fn compute_options() -> (Vec<DateTime<Local>>, Vec<SharedString>) {
 
         (time, text)
     }).unzip()
+}
+
+fn play_sound() {
+    thread::spawn(|| {
+        let mut sink_handle = DeviceSinkBuilder::open_default_sink().expect("Open default audio stream");
+        sink_handle.log_on_drop(false);
+        let player = Player::connect_new(&sink_handle.mixer());
+
+        let audio_filename = "../assets/game_over.mp3";
+
+        if let Ok(file) = File::open(audio_filename) {
+            let reader = BufReader::new(file);
+            if let Ok(source) = Decoder::new(reader) {
+                // let dummy = SineWave::new(440.0).take_duration(std::time::Duration::from_secs_f32(0.5)).amplify(0.01);
+                // player.append(dummy);
+                player.append(source);
+
+                player.sleep_until_end();
+            } else {
+                eprintln!("Error while decoding audio file: {}", audio_filename);
+            }
+        } else {
+            eprintln!("File not found: {}", audio_filename);
+        }
+
+        player.sleep_until_end();
+    });
 }
 
 fn main() -> Result<(), slint::PlatformError> {
@@ -107,6 +137,12 @@ fn main() -> Result<(), slint::PlatformError> {
 
             state.opts_time = new_times;
             state.slint_model.set_vec(new_texts);
+        }
+    });
+
+    main_window.on_play_sound({
+        || {
+            play_sound();
         }
     });
 
