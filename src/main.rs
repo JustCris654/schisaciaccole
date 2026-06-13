@@ -1,6 +1,6 @@
 use chrono::{prelude::*, Duration};
+use log::{debug, error, info};
 use rodio::{DeviceSinkBuilder, Player, Decoder};
-use rodio::source::{SineWave, Source};
 use slint::{ModelRc, SharedString, VecModel};
 use std::{cell::RefCell, io::BufReader, rc::Rc, thread};
 use std::fs::File;
@@ -15,6 +15,7 @@ struct AppState {
 
 fn compute_options() -> (Vec<DateTime<Local>>, Vec<SharedString>) {
     let now: DateTime<Local> = Local::now();
+    debug!("compute_options at {}", now.format("%H:%M:%S"));
 
     let minutes_to_next_quarter = 15 - (now.minute() % 15);
 
@@ -43,16 +44,17 @@ fn play_sound() {
         if let Ok(file) = File::open(audio_filename) {
             let reader = BufReader::new(file);
             if let Ok(source) = Decoder::new(reader) {
+                info!("Playing sound: {}", audio_filename);
                 // let dummy = SineWave::new(440.0).take_duration(std::time::Duration::from_secs_f32(0.5)).amplify(0.01);
                 // player.append(dummy);
                 player.append(source);
 
                 player.sleep_until_end();
             } else {
-                eprintln!("Error while decoding audio file: {}", audio_filename);
+                error!("Error while decoding audio file: {}", audio_filename);
             }
         } else {
-            eprintln!("File not found: {}", audio_filename);
+            error!("File not found: {}", audio_filename);
         }
 
         player.sleep_until_end();
@@ -60,6 +62,13 @@ fn play_sound() {
 }
 
 fn main() -> Result<(), slint::PlatformError> {
+    env_logger::Builder::from_env(
+        env_logger::Env::default().default_filter_or("warn"),
+    )
+    .init();
+
+    info!("Starting schisaciaccole");
+
     let main_window = MainWindow::new().unwrap();
     let start_with_zero_millis_window = StartWithZeroMillis::new().unwrap();
 
@@ -73,7 +82,6 @@ fn main() -> Result<(), slint::PlatformError> {
         slint_model,
     }));
 
-    // select time
     main_window.on_select_time({
         let window_weak = main_window.as_weak();
         let state_clone = app_state.clone();
@@ -92,6 +100,13 @@ fn main() -> Result<(), slint::PlatformError> {
                 Duration::minutes(15).num_seconds() + remaining_time.num_seconds()
             };
 
+            info!(
+                "select_time: idx={} target={} remaining={}s",
+                idx,
+                target_time.format("%H:%M"),
+                rem_seconds
+            );
+
             window.set_timer_time(rem_seconds * 1000);
             window.set_page(Page::TimerPage);
             window.set_running_state(true);
@@ -107,19 +122,21 @@ fn main() -> Result<(), slint::PlatformError> {
             let now_running = !window.get_running_state();
             let timer_time = window.get_timer_time();
             if timer_time > 0 {
+                info!("start_pause: running={} timer_time={}ms", now_running, timer_time);
                 window.set_running_state(now_running);
             } else {
+                info!("start_pause: blocked, timer_time is 0");
                 let _ = start_with_zero_millis_window.run();
             }
         }
     });
 
-    // reset
     main_window.on_stop({
         let window_weak = main_window.as_weak();
 
         move || {
             let window = window_weak.unwrap();
+            info!("stop: timer stopped, back to selection");
 
             window.set_running_state(false);
             window.set_timer_time(0);
@@ -135,6 +152,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
             let (new_times, new_texts) = compute_options();
 
+            debug!("compute_options refreshed {} options", new_texts.len());
             state.opts_time = new_times;
             state.slint_model.set_vec(new_texts);
         }
