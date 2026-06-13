@@ -1,38 +1,75 @@
-# Slint Rust Template
+# Schisaciaccole
 
-A template for a Rust application that's using [Slint](https://slint.rs/) for the user interface.
+A countdown timer for **time-boxed Scrum ceremonies**.
 
-## About
+Scrum ceremonies are time-boxed: regardless of when the team actually gets into
+the meeting room, the meeting should end at its designated time. Schisaciaccole
+makes that easy — instead of asking "how long do we have left?", you pick the
+**wall-clock time the meeting must end** and the timer counts down precisely to
+that moment.
 
-This template helps you get started developing a Rust application with Slint as toolkit
-for the user interface. It demonstrates the integration between the `.slint` UI markup and
-Rust code, how to react to callbacks, get and set properties, and use basic widgets.
+## How it works
 
-## Usage
+When you launch the app it shows the **next 8 quarter-hour marks** (00, 15, 30,
+45 past the hour) starting from the upcoming quarter. That covers meetings of up
+to **2 hours**.
 
-1. Install Rust by following its [getting-started guide](https://www.rust-lang.org/learn/get-started).
-   Once this is done, you should have the `rustc` compiler and the `cargo` build system installed in your `PATH`.
-2. Download and extract the [ZIP archive of this repository](https://github.com/slint-ui/slint-rust-template/archive/refs/heads/main.zip).
-3. Rename the extracted directory and change into it:
-    ```
-    mv slint-rust-template-main my-project
-    cd my-project    
-    ```
-4. Build with `cargo`:
-    ```
-    cargo build
-    ```
-5. Run the application binary:
-    ```
-    cargo run
-    ```
+- The options refresh automatically every 3 seconds, so they are always accurate
+  even if the app sits open for a while before the meeting starts.
+- Pick the slot when the ceremony has to end.
+- The timer counts down to exactly that time and plays a sound when it reaches
+  zero.
+- Press **Stop** to end early and go back to the selection screen.
 
-We recommend using an IDE for development, along with our [LSP-based IDE integration for `.slint` files](https://github.com/slint-ui/slint/blob/master/tools/lsp/README.md). You can also load this project directly in [Visual Studio Code](https://code.visualstudio.com) and install our [Slint extension](https://marketplace.visualstudio.com/items?itemName=Slint.slint).
+Example: it's 09:07 and the daily stand-up must wrap by 09:15. Open the app, tap
+`09:15`, and the timer ends precisely at 09:15 — not 15 minutes from when you
+pressed the button.
 
-## Next Steps
+## Screenshots
 
-We hope that this template helps you get started, and that you enjoy exploring making user interfaces with Slint. To learn more
-about the Slint APIs and the `.slint` markup language, check out our [online documentation](https://slint.dev/docs).
+| Selection | Timer |
+|-----------|-------|
+| ![Selection page](assets/screenshot_selection_page.png) | ![Timer page](assets/screenshot_timer_page.png) |
 
-Don't forget to edit this readme to replace it by yours, and edit the `name =` field in `Cargo.toml` to match the name of your
-project.
+## Requirements
+
+- [Rust](https://www.rust-lang.org/tools/install) (stable toolchain, `cargo`)
+- The **Chillax** font (see below — not bundled)
+
+## Font setup (required)
+
+The app uses **Chillax** as its default font. It is **not** included in this
+repo — you have to download it yourself.
+
+1. Download Chillax: <https://api.fontshare.com/v2/fonts/download/chillax>
+2. Unzip it.
+3. Place the OTF Medium weight at exactly this path:
+
+   ```
+   ui/assets/fonts/Chillax_Variable/Fonts/OTF/Chillax-Medium.otf
+   ```
+
+If the file is missing or in the wrong place the build/render will fail to find
+the font.
+
+## Build & run
+
+```sh
+cargo run
+```
+
+For a release build:
+
+```sh
+cargo run --release
+```
+
+## Logging
+
+The app uses `env_logger`. Control verbosity with the `RUST_LOG` environment
+variable (default is `warn`):
+
+```sh
+RUST_LOG=info cargo run     # callback events: selection, start/pause, stop, sound
+RUST_LOG=debug cargo run    # also the periodic option refresh
+```
