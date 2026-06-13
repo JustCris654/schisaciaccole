@@ -1,0 +1,47 @@
+# Maintainer: Cristian Scapin <cristian.scapin@openmove.com>
+#
+# Local PKGBUILD: builds the working tree two levels up (the repo root).
+# Run it from THIS directory so makepkg's src/ and pkg/ dirs stay here and
+# never collide with the crate's own src/:
+#
+#     cd packaging/arch
+#     makepkg -f
+#     sudo pacman -U schisaciaccole-*.pkg.tar.zst
+#
+pkgname=schisaciaccole
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Countdown timer for time-boxed Scrum ceremonies"
+arch=('x86_64')
+url="https://github.com/openmove/schisaciaccole"
+license=('MIT')
+depends=('fontconfig' 'libxkbcommon')
+makedepends=('cargo')
+options=('!lto')
+
+# Resolve the repo root relative to this PKGBUILD.
+_projroot="$(realpath "$startdir/../..")"
+
+build() {
+  # Copy only the needed sources into a clean build dir under $srcdir.
+  # Building here (not in $_projroot) keeps cargo's build-script fingerprint
+  # scan away from makepkg's pkg/ dir, which it cannot read.
+  local b="$srcdir/$pkgname"
+  rm -rf "$b"
+  mkdir -p "$b"
+  cp -a "$_projroot"/{Cargo.toml,Cargo.lock,build.rs,src,ui,assets} "$b/"
+
+  cd "$b"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo build --release --frozen
+}
+
+package() {
+  local b="$srcdir/$pkgname"
+
+  install -Dm755 "$b/target/release/$pkgname"  "$pkgdir/usr/bin/$pkgname"
+  install -Dm644 "$b/assets/game_over.mp3"     "$pkgdir/usr/lib/$pkgname/assets/game_over.mp3"
+  install -Dm644 "$b/assets/icon.png"          "$pkgdir/usr/share/icons/hicolor/128x128/apps/$pkgname.png"
+  install -Dm644 "$startdir/$pkgname.desktop"  "$pkgdir/usr/share/applications/$pkgname.desktop"
+  install -Dm644 "$_projroot/LICENSE"          "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -19,3 +19,15 @@ slint-build = "1.16.1"
 [profile.release]
 codegen-units = 1
 lto = true
+
+[package.metadata.bundle]
+name = "Schisaciaccole"
+identifier = "com.openmove.schisaciaccole"
+icon = ["assets/icon.png"]
+resources = ["assets/game_over.mp3"]
+category = "Utility"
+short_description = "Countdown timer for time-boxed Scrum ceremonies"
+long_description = """
+Pick the wall-clock time your time-boxed Scrum ceremony must end and the timer
+counts down precisely to that moment, regardless of when the meeting started.
+"""

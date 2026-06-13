@@ -4,6 +4,7 @@ use rodio::{DeviceSinkBuilder, Player, Decoder};
 use slint::{ModelRc, SharedString, VecModel};
 use std::{cell::RefCell, io::BufReader, rc::Rc, thread};
 use std::fs::File;
+use std::path::PathBuf;
 
 slint::include_modules!();
 
@@ -33,28 +34,59 @@ fn compute_options() -> (Vec<DateTime<Local>>, Vec<SharedString>) {
     }).unzip()
 }
 
+/// Locate `game_over.mp3`, checking every place it can live across dev and the
+/// packaged bundles. cargo-bundle / the PKGBUILD copy `assets/` to a
+/// platform-specific dir:
+///   - linux pkg: `/usr/lib/<name>/assets/...` (exe is `/usr/bin/<name>`)
+///   - macOS app: `<App>.app/Contents/Resources/assets/...` (exe is `.../MacOS/<name>`)
+/// In dev, fall back to the crate dir baked in at compile time.
+fn sound_path() -> Option<PathBuf> {
+    const REL: &str = "game_over.mp3";
+
+    let mut candidates: Vec<PathBuf> = Vec::new();
+
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            // next to the executable
+            candidates.push(dir.join("assets").join(REL));
+            // linux pkg: /usr/bin/<name> -> /usr/lib/<name>/assets/<REL>
+            candidates.push(dir.join("../lib/schisaciaccole/assets").join(REL));
+            // macOS .app: Contents/MacOS/<name> -> Contents/Resources/assets/<REL>
+            candidates.push(dir.join("../Resources/assets").join(REL));
+        }
+    }
+
+    // dev: resolve from the crate root regardless of cwd
+    candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets").join(REL));
+
+    candidates.into_iter().find(|p| p.exists())
+}
+
 fn play_sound() {
     thread::spawn(|| {
+        let Some(audio_path) = sound_path() else {
+            error!("Sound file not found: game_over.mp3 (searched bundle + crate dirs)");
+            return;
+        };
+
         let mut sink_handle = DeviceSinkBuilder::open_default_sink().expect("Open default audio stream");
         sink_handle.log_on_drop(false);
         let player = Player::connect_new(&sink_handle.mixer());
 
-        let audio_filename = "../assets/game_over.mp3";
-
-        if let Ok(file) = File::open(audio_filename) {
-            let reader = BufReader::new(file);
-            if let Ok(source) = Decoder::new(reader) {
-                info!("Playing sound: {}", audio_filename);
-                // let dummy = SineWave::new(440.0).take_duration(std::time::Duration::from_secs_f32(0.5)).amplify(0.01);
-                // player.append(dummy);
-                player.append(source);
-
-                player.sleep_until_end();
-            } else {
-                error!("Error while decoding audio file: {}", audio_filename);
+        match File::open(&audio_path) {
+            Ok(file) => {
+                let reader = BufReader::new(file);
+                if let Ok(source) = Decoder::new(reader) {
+                    info!("Playing sound: {}", audio_path.display());
+                    player.append(source);
+                    player.sleep_until_end();
+                } else {
+                    error!("Error while decoding audio file: {}", audio_path.display());
+                }
             }
-        } else {
-            error!("File not found: {}", audio_filename);
+            Err(e) => {
+                error!("Failed to open audio file {}: {}", audio_path.display(), e);
+            }
         }
 
         player.sleep_until_end();
