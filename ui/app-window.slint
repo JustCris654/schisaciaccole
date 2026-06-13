@@ -1,11 +1,34 @@
 import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 
+import "../assets/fonts/Chillax_Variable/Fonts/OTF/Chillax-Medium.otf";
+// import "../assets/fonts/Plus_Jakarta_Sans/static/PlusJakartaSans-Medium.ttf";
+
 export enum Page { SelectionPage, TimerPage }
+
+component SelectionButton inherits Rectangle {
+    in property <string> text;
+    in property <length> font-size;
+
+    callback clicked <=> touch.clicked;
+
+    background: lightblue;
+    border-radius: 4px;
+
+    txt := Text {
+	text: root.text;
+	font-size: root.font-size;
+	color: black;
+    }
+
+    touch := TouchArea {}
+}
 
 export component MainWindow inherits Window {
     title: "Schisaciaccole";
     preferred-width: 526px; 
     preferred-height: 326px;
+    // default-font-family: "Plus Jakarta Sans";
+    default-font-family: "Chillax";
 
     in-out property <duration> timer-time: 3s;
     in-out property <bool>     running-state: false;
@@ -64,12 +87,13 @@ export component MainWindow inherits Window {
 	}
 
 	GridLayout {
-	    spacing: 10px;
+	    spacing: 15px;
 
-	    for option[index] in root.time_options: Button {
+	    for option[index] in root.time_options: SelectionButton {
 		row: Math.floor(index / 4);
 		col: Math.mod(index, 4);
 
+		font-size: 18pt;
 		text: option;
 		clicked => { select-time(index); }
 	    }
@@ -111,19 +135,24 @@ export component StartWithZeroMillis inherits Window {
     preferred-height: 226px;
     always-on-top: true;
 
+    in property <string> widget-title;
+    in property <string> widget-text;
+
 
     VerticalBox {
 	alignment: center;
 
 	Text {
-	    text: "You've been bad!";
+	    // text: "You've been bad!";
+	    text: widget-title;
 	    color: red;
 	    font-size: 32pt;
 	    horizontal-alignment: center;
 	}
 
 	Text {
-	    text: "You can't start a timer with 0 seconds";
+	    // text: "You can't start a timer with 0 seconds";
+	    text: widget-text;
 	    font-size: 18pt;
 	    horizontal-alignment: center;
 	}

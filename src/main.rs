@@ -33,9 +33,6 @@ fn main() -> Result<(), slint::PlatformError> {
     let main_window = MainWindow::new().unwrap();
     let start_with_zero_millis_window = StartWithZeroMillis::new().unwrap();
 
-    // it runs on the ui thread
-    // let timer = slint::Timer::default();
-
     let (opts_time, opts_text) = compute_options();
     let slint_model = Rc::new(VecModel::from(opts_text));
 
@@ -52,7 +49,6 @@ fn main() -> Result<(), slint::PlatformError> {
         let state_clone = app_state.clone();
 
         move |index| {
-
             let window = window_weak.unwrap();
             let idx: usize = index.try_into().unwrap();
             let state = state_clone.borrow();
@@ -60,15 +56,11 @@ fn main() -> Result<(), slint::PlatformError> {
             let target_time = state.opts_time[idx];
             let remaining_time = target_time - now;
 
-            println!("remaining time: {} = {}", remaining_time, remaining_time.num_seconds());
-
             let rem_seconds = if remaining_time.num_seconds() > 0 {
                 remaining_time.num_seconds()
             } else {
                 Duration::minutes(15).num_seconds() + remaining_time.num_seconds()
             };
-
-            println!("rem seconds: {}", rem_seconds);
 
             window.set_timer_time(rem_seconds * 1000);
             window.set_page(Page::TimerPage);
