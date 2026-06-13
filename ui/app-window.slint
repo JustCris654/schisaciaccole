@@ -30,6 +30,8 @@ export component MainWindow inherits Window {
     // default-font-family: "Plus Jakarta Sans";
     default-font-family: "Chillax";
 
+    property <float> ui-scale: Math.min(root.width / 526px, root.height / 326px);
+
     in-out property <duration> timer-time: 3s;
     in-out property <bool>     running-state: false;
     in-out property <Page>     page: SelectionPage; 
@@ -78,22 +80,23 @@ export component MainWindow inherits Window {
     // render this if page is SelectionPage
     if page == Page.SelectionPage : VerticalBox {
 	alignment: center;
+	padding: 25px * ui-scale;
 
 
 	Text {
-	    text: "Scegli opzione:";
-	    font-size: 22pt;
+	    text: "Quando deve finire questa cerimonia?";
+	    font-size: 22px * root.ui-scale;
 	    horizontal-alignment: start;
 	}
 
 	GridLayout {
-	    spacing: 15px;
+	    spacing: 15px * ui-scale;
 
 	    for option[index] in root.time_options: SelectionButton {
 		row: Math.floor(index / 4);
 		col: Math.mod(index, 4);
 
-		font-size: 18pt;
+		font-size: 18px * root.ui-scale;
 		text: option;
 		clicked => { select-time(index); }
 	    }
@@ -103,11 +106,12 @@ export component MainWindow inherits Window {
     // render this if page is TimerPage
     if page == Page.TimerPage : VerticalBox {
 	alignment: center;
+	padding: 25px * ui-scale;
 
 
 	Text {
 	    text: displayTimer;
-	    font-size: 48pt;
+	    font-size: 100px * root.ui-scale;
 	    horizontal-alignment: center;
 	}
 
