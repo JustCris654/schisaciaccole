@@ -4311,6 +4311,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "env_logger",
+ "i-slint-core",
  "log",
  "rand 0.10.1",
  "rodio",

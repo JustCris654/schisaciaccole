@@ -39,7 +39,7 @@ fn compute_options() -> (Vec<DateTime<Local>>, Vec<SharedString>) {
 /// platform-specific dir:
 ///   - linux pkg: `/usr/lib/<name>/assets/...` (exe is `/usr/bin/<name>`)
 ///   - macOS app: `<App>.app/Contents/Resources/assets/...` (exe is `.../MacOS/<name>`)
-/// In dev, fall back to the crate dir baked in at compile time.
+///     In dev, fall back to the crate dir baked in at compile time.
 fn sound_path() -> Option<PathBuf> {
     const REL: &str = "game_over.mp3";
 
@@ -71,7 +71,7 @@ fn play_sound() {
 
         let mut sink_handle = DeviceSinkBuilder::open_default_sink().expect("Open default audio stream");
         sink_handle.log_on_drop(false);
-        let player = Player::connect_new(&sink_handle.mixer());
+        let player = Player::connect_new(sink_handle.mixer());
 
         match File::open(&audio_path) {
             Ok(file) => {
@@ -197,5 +197,7 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
 
+    let name = env!("CARGO_PKG_NAME");
+    let _ = i_slint_core::api::set_xdg_app_id(name);
     main_window.run()
 }

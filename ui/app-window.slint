@@ -1,7 +1,7 @@
-import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Palette, Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 
-// import "../assets/fonts/Chillax_Variable/Fonts/OTF/Chillax-Medium.otf";
-import "../assets/fonts/Plus_Jakarta_Sans/static/PlusJakartaSans-Medium.ttf";
+import "../assets/fonts/Chillax_Variable/Fonts/OTF/Chillax-Medium.otf";
+// import "../assets/fonts/Plus_Jakarta_Sans/static/PlusJakartaSans-Medium.ttf";
 
 export enum Page { SelectionPage, TimerPage }
 
@@ -11,7 +11,7 @@ component SelectionButton inherits Rectangle {
 
     callback clicked <=> touch.clicked;
 
-    background: lightblue;
+    background: #C682F5;
     border-radius: 4px;
 
     txt := Text {
@@ -25,10 +25,11 @@ component SelectionButton inherits Rectangle {
 
 export component MainWindow inherits Window {
     title: "Schisaciaccole";
+    icon: @image-url("../assets/icon_256.png");
     preferred-width: 526px; 
     preferred-height: 326px;
-    default-font-family: "Plus Jakarta Sans";
-    // default-font-family: "Chillax";
+    // default-font-family: "Plus Jakarta Sans";
+    default-font-family: "Chillax";
 
     property <float> ui-scale: Math.min(root.width / 526px, root.height / 326px);
 
@@ -113,6 +114,7 @@ export component MainWindow inherits Window {
 
 	Text {
 	    text: displayTimer;
+	    color: #C682F5;
 	    font-size: 100px * root.ui-scale;
 	    horizontal-alignment: center;
 	}

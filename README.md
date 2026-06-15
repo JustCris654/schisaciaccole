@@ -79,6 +79,42 @@ For a release build:
 cargo run --release
 ```
 
+## Packaging
+
+The app icon lives at `assets/icon.png` and the `game_over.mp3` sound ships as a
+resource. At runtime the sound is located relative to the executable, so it
+works from every package layout (dev, deb, macOS app, Arch pkg).
+
+### Linux (.deb) and macOS (.app) — cargo-bundle
+
+```sh
+cargo install cargo-bundle          # once
+
+cargo bundle --release --format deb   # Linux  -> target/release/bundle/deb/*.deb
+cargo bundle --release --format osx   # macOS  -> *.app (must run on macOS)
+```
+
+Bundle metadata (name, identifier, icon, bundled resources) lives in the
+`[package.metadata.bundle]` section of `Cargo.toml`.
+
+### Arch Linux (pacman)
+
+pacman can't install a `.deb`. Use the bundled PKGBUILD instead.
+
+> **Run `makepkg` from inside `packaging/arch/`, never from the repo root.**
+> makepkg uses `./src` and `./pkg` as its work dirs — at the repo root `./src`
+> is the crate's own source directory and makepkg would wipe it. The PKGBUILD
+> builds a clean copy under its own `src/`, so the crate is never touched.
+
+```sh
+cd packaging/arch
+makepkg -f                  # rustup users without the pacman 'cargo' pkg: makepkg -fd
+sudo pacman -U schisaciaccole-*.pkg.tar.zst
+```
+
+This installs the binary, the sound, the icon, a `.desktop` launcher and the
+license under the standard `/usr` paths.
+
 ## Logging
 
 The app uses `env_logger`. Control verbosity with the `RUST_LOG` environment
