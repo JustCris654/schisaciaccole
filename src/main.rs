@@ -1,10 +1,10 @@
 use chrono::{prelude::*, Duration};
 use log::{debug, error, info};
-use rodio::{DeviceSinkBuilder, Player, Decoder};
+use rodio::{Decoder, DeviceSinkBuilder, Player};
 use slint::{ModelRc, SharedString, VecModel};
-use std::{cell::RefCell, io::BufReader, rc::Rc, thread};
 use std::fs::File;
 use std::path::PathBuf;
+use std::{cell::RefCell, io::BufReader, rc::Rc, thread};
 
 slint::include_modules!();
 
@@ -14,8 +14,18 @@ struct AppState {
     slint_model: Rc<VecModel<SharedString>>,
 }
 
+fn update_ui_options(state: &RefCell<AppState>) {
+    let mut state = state.borrow_mut();
+
+    let (new_times, new_texts) = compute_options();
+
+    debug!("compute_options refreshed {} options", new_texts.len());
+    state.opts_time = new_times;
+    state.slint_model.set_vec(new_texts);
+}
+
 fn compute_options() -> (Vec<DateTime<Local>>, Vec<SharedString>) {
-    let now: DateTime<Local> = Local::now();
+    let now: DateTime<Local> = Local::now() + Duration::seconds(5);
     debug!("compute_options at {}", now.format("%H:%M:%S"));
 
     let minutes_to_next_quarter = 15 - (now.minute() % 15);
@@ -26,50 +36,58 @@ fn compute_options() -> (Vec<DateTime<Local>>, Vec<SharedString>) {
         .with_nanosecond(0)
         .unwrap();
 
-    (0..8).map(|i| {
-        let time = first_target + Duration::minutes(i * 15);
-        let text: SharedString = time.format("%H:%M").to_string().into();
+    (0..8)
+        .map(|i| {
+            let time = first_target + Duration::minutes(i * 15);
+            let text: SharedString = time.format("%H:%M").to_string().into();
 
-        (time, text)
-    }).unzip()
+            (time, text)
+        })
+        .unzip()
 }
 
-/// Locate `game_over.mp3`, checking every place it can live across dev and the
+/// Locate the audio asset, checking every place it can live across dev and the
 /// packaged bundles. cargo-bundle / the PKGBUILD copy `assets/` to a
 /// platform-specific dir:
 ///   - linux pkg: `/usr/lib/<name>/assets/...` (exe is `/usr/bin/<name>`)
 ///   - macOS app: `<App>.app/Contents/Resources/assets/...` (exe is `.../MacOS/<name>`)
 ///     In dev, fall back to the crate dir baked in at compile time.
-fn sound_path() -> Option<PathBuf> {
-    const REL: &str = "game_over.mp3";
+fn sound_path(sound_asset_name: &str) -> Option<PathBuf> {
 
     let mut candidates: Vec<PathBuf> = Vec::new();
 
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
             // next to the executable
-            candidates.push(dir.join("assets").join(REL));
-            // linux pkg: /usr/bin/<name> -> /usr/lib/<name>/assets/<REL>
-            candidates.push(dir.join("../lib/schisaciaccole/assets").join(REL));
-            // macOS .app: Contents/MacOS/<name> -> Contents/Resources/assets/<REL>
-            candidates.push(dir.join("../Resources/assets").join(REL));
+            candidates.push(dir.join("assets").join(sound_asset_name));
+            // linux pkg: /usr/bin/<name> -> /usr/lib/<name>/assets/<sound_asset_name>
+            candidates.push(dir.join("../lib/schisaciaccole/assets").join(sound_asset_name));
+            // macOS .app: Contents/MacOS/<name> -> Contents/Resources/assets/<sound_asset_name>
+            candidates.push(dir.join("../Resources/assets").join(sound_asset_name));
         }
     }
 
     // dev: resolve from the crate root regardless of cwd
-    candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets").join(REL));
+    candidates.push(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("assets")
+            .join(sound_asset_name),
+    );
 
     candidates.into_iter().find(|p| p.exists())
 }
 
 fn play_sound() {
     thread::spawn(|| {
-        let Some(audio_path) = sound_path() else {
-            error!("Sound file not found: game_over.mp3 (searched bundle + crate dirs)");
+        const SOUND_ASSET_NAME: &str = "game_over.mp3";
+        // const SOUND_ASSET_NAME: &str = "level_up_copyrighted.mp3";
+        let Some(audio_path) = sound_path(SOUND_ASSET_NAME) else {
+            error!("Sound file not found: level_up_copyrighted.mp3 (searched bundle + crate dirs)");
             return;
         };
 
-        let mut sink_handle = DeviceSinkBuilder::open_default_sink().expect("Open default audio stream");
+        let mut sink_handle =
+            DeviceSinkBuilder::open_default_sink().expect("Open default audio stream");
         sink_handle.log_on_drop(false);
         let player = Player::connect_new(sink_handle.mixer());
 
@@ -88,16 +106,11 @@ fn play_sound() {
                 error!("Failed to open audio file {}: {}", audio_path.display(), e);
             }
         }
-
-        player.sleep_until_end();
     });
 }
 
 fn main() -> Result<(), slint::PlatformError> {
-    env_logger::Builder::from_env(
-        env_logger::Env::default().default_filter_or("warn"),
-    )
-    .init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
 
     info!("Starting schisaciaccole");
 
@@ -109,7 +122,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
     main_window.set_time_options(ModelRc::from(slint_model.clone()));
 
-    let app_state = Rc::new(RefCell::new(AppState{
+    let app_state = Rc::new(RefCell::new(AppState {
         opts_time,
         slint_model,
     }));
@@ -140,6 +153,7 @@ fn main() -> Result<(), slint::PlatformError> {
             );
 
             window.set_timer_time(rem_seconds * 1000);
+            // window.set_timer_time(3 * 1000);
             window.set_page(Page::TimerPage);
             window.set_running_state(true);
         }
@@ -154,7 +168,10 @@ fn main() -> Result<(), slint::PlatformError> {
             let now_running = !window.get_running_state();
             let timer_time = window.get_timer_time();
             if timer_time > 0 {
-                info!("start_pause: running={} timer_time={}ms", now_running, timer_time);
+                info!(
+                    "start_pause: running={} timer_time={}ms",
+                    now_running, timer_time
+                );
                 window.set_running_state(now_running);
             } else {
                 info!("start_pause: blocked, timer_time is 0");
@@ -165,14 +182,20 @@ fn main() -> Result<(), slint::PlatformError> {
 
     main_window.on_stop({
         let window_weak = main_window.as_weak();
+        let state_clone = app_state.clone();
 
-        move || {
+        move |stop_type| {
             let window = window_weak.unwrap();
             info!("stop: timer stopped, back to selection");
 
+            update_ui_options(&state_clone);
+
             window.set_running_state(false);
             window.set_timer_time(0);
-            window.set_page(Page::SelectionPage);
+            match stop_type {
+                StopType::TimerFinished => window.set_page(Page::TimerFinished),
+                StopType::UserStopped => window.set_page(Page::SelectionPage),
+            }
         }
     });
 
@@ -180,13 +203,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let state_clone = app_state.clone();
 
         move || {
-            let mut state = state_clone.borrow_mut();
-
-            let (new_times, new_texts) = compute_options();
-
-            debug!("compute_options refreshed {} options", new_texts.len());
-            state.opts_time = new_times;
-            state.slint_model.set_vec(new_texts);
+            update_ui_options(&state_clone);
         }
     });
 
@@ -196,6 +213,31 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
+    main_window.on_set_selection_page({
+        let window_weak = main_window.as_weak();
+
+        move || {
+            let window = window_weak.unwrap();
+            window.set_page(Page::SelectionPage)
+        }
+    });
+
+    main_window.on_quit({
+        || {
+            slint::quit_event_loop().unwrap();
+        }
+    });
+
+    main_window.on_fullscreen({
+        let window_weak = main_window.as_weak();
+
+        move || {
+            let window = window_weak.unwrap();
+
+            window.set_is_fullscreen(!window.get_is_fullscreen());
+            window.window().set_fullscreen(window.get_is_fullscreen());
+        }
+    });
 
     let name = env!("CARGO_PKG_NAME");
     let _ = i_slint_core::api::set_xdg_app_id(name);

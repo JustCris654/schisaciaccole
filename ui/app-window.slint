@@ -1,9 +1,10 @@
 import { Palette, Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 
-import "../assets/fonts/Chillax_Variable/Fonts/OTF/Chillax-Medium.otf";
-// import "../assets/fonts/Plus_Jakarta_Sans/static/PlusJakartaSans-Medium.ttf";
+// import "../assets/fonts/Chillax_Variable/Fonts/OTF/Chillax-Medium.otf";
+import "../assets/fonts/Plus_Jakarta_Sans/static/PlusJakartaSans-Medium.ttf";
 
-export enum Page { SelectionPage, TimerPage }
+export enum Page { SelectionPage, TimerPage, TimerFinished }
+export enum StopType { TimerFinished, UserStopped }
 
 component SelectionButton inherits Rectangle {
     in property <string> text;
@@ -28,22 +29,40 @@ export component MainWindow inherits Window {
     icon: @image-url("../assets/icon_256.png");
     preferred-width: 526px; 
     preferred-height: 326px;
-    // default-font-family: "Plus Jakarta Sans";
-    default-font-family: "Chillax";
+    default-font-family: "Plus Jakarta Sans";
+    // default-font-family: "Chillax";
+    forward-focus: scope;
+
 
     property <float> ui-scale: Math.min(root.width / 526px, root.height / 326px);
 
     in-out property <duration> timer-time: 3s;
     in-out property <bool>     running-state: false;
     in-out property <Page>     page: SelectionPage; 
+    in property     <bool>     is_fullscreen: false;
     in property     <[string]> time_options;
 
 
     callback start-pause();
-    callback stop();
+    callback stop(StopType);
     callback select-time(int);
     callback compute-options();
     callback play-sound();
+    callback set-selection-page();
+    callback quit();
+    callback fullscreen();
+
+    scope := FocusScope {
+        KeyBinding {
+            keys: @keys(Q);
+            activated => { quit(); }
+        }
+
+        KeyBinding {
+            keys: @keys(M);
+            activated => { fullscreen(); }
+        }
+    }
 
     timer := Timer {
 	interval  : 1s;
@@ -53,7 +72,7 @@ export component MainWindow inherits Window {
 	    if (running-state) {
 		timer-time -= 1s;
 		if (timer-time <= 0) {
-		    stop();
+		    stop(StopType.TimerFinished);
 		    play-sound();
 		}
 	    } 
@@ -129,7 +148,38 @@ export component MainWindow inherits Window {
 
 	    Button {
 		text: "Stop";
-		clicked => { stop(); }
+		clicked => { stop(StopType.UserStopped); }
+	    }
+	}
+    }
+
+    
+    if page == Page.TimerFinished : VerticalBox {
+	alignment: center;
+	padding: 25px * ui-scale;
+
+
+	Text {
+	    text: "Congrats!\nScrum ceremony finished";
+	    color: #C682F5;
+	    font-size: 36px * root.ui-scale;
+	    horizontal-alignment: center;
+	}
+
+	Text {
+	    text: "Now get the fuck outta here";
+	    color: #ffffff;
+	    font-size: 24px * root.ui-scale;
+	    horizontal-alignment: center;
+	}
+
+
+	HorizontalBox {
+	    alignment: center;
+
+	    Button {
+		text: "Selection page";
+		clicked => { set-selection-page(); }
 	    }
 	}
     }
@@ -164,5 +214,7 @@ export component StartWithZeroMillis inherits Window {
 	    font-size: 18pt;
 	    horizontal-alignment: center;
 	}
+
+	
     }
 }
