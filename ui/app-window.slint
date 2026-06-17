@@ -6,22 +6,36 @@ import "../assets/fonts/Plus_Jakarta_Sans/static/PlusJakartaSans-Medium.ttf";
 export enum Page { SelectionPage, TimerPage, TimerFinished }
 export enum StopType { TimerFinished, UserStopped }
 
-component SelectionButton inherits Rectangle {
-    in property <string> text;
+export struct TimeOption {
+    time: string,
+    minutes: string,
+}
+
+component SelectionButton inherits VerticalBox {
+    in property <string> time;
+    in property <string> minutes;
     in property <length> font-size;
 
     callback clicked <=> touch.clicked;
 
-    background: #C682F5;
-    border-radius: 4px;
-
-    txt := Text {
-	text: root.text;
-	font-size: root.font-size;
-	color: black;
+    Text {
+	font-size: root.font-size/2;
+	text: "Minutes: " + minutes;
     }
 
-    touch := TouchArea {}
+    Rectangle {
+	touch := TouchArea {}
+
+	background: touch.has-hover ? #A169C7 : #C682F5;
+	border-radius: 4px;
+
+	txt := Text {
+	    text: root.time;
+	    font-size: root.font-size;
+	    color: black;
+	}
+
+    }
 }
 
 export component MainWindow inherits Window {
@@ -44,6 +58,7 @@ export component MainWindow inherits Window {
     in-out property <Page>     page: SelectionPage; 
     in property     <bool>     is_fullscreen: false;
     in property     <[TimeOption]> options;
+    in property     <bool>     is-macos;
 
     callback start-pause();
     callback stop(StopType);
@@ -53,6 +68,18 @@ export component MainWindow inherits Window {
     callback set-selection-page();
     callback quit();
     callback fullscreen(bool);
+    callback help();
+
+    if is-macos: MenuBar {
+	Menu {
+	    title: @tr("Window");
+	    MenuItem {
+		title: @tr("Always on top");
+		activated => { on-top = !on-top; }
+		shortcut: @keys(Control + T);
+	    }
+	}
+    }
 
     scope := FocusScope {
         KeyBinding {
@@ -73,6 +100,11 @@ export component MainWindow inherits Window {
         KeyBinding {
             keys: @keys(T);
             activated => { on-top = !on-top; }
+        }
+
+        KeyBinding {
+            keys: @keys(H);
+            activated => { help(); }
         }
     }
 
@@ -118,8 +150,8 @@ export component MainWindow inherits Window {
 
     if on-top : Rectangle {
         width: 10px;
-        height: 5px;
-        x: root.width - self.width - 2px; // Aligns to the left
+        height: 10px;
+        x: root.width - self.width - 2px; // Aligns to the right
         y: 2px; // Aligns to the top
         background: #C682F5;
         border-radius: self.width / 2; // Makes the rectangle a circle
@@ -216,34 +248,93 @@ export component MainWindow inherits Window {
 }
 
 
-export component StartWithZeroMillis inherits Window {
+export component Help inherits Window {
     title: "Schisaciaccole";
-    preferred-width: 326px; 
+    preferred-width: 526px; 
     preferred-height: 226px;
     always-on-top: true;
 
-    in property <string> widget-title;
-    in property <string> widget-text;
-
-
+    // Wrap in a conditional so the window does not statically adopt this
+    // layout's font-driven size as its own (which loops: size -> ui-scale ->
+    // font-size -> size). Same pattern as MainWindow's `if page == ...` bodies.
     VerticalBox {
+	width: root.width;
+	height: root.height;
 	alignment: center;
 
 	Text {
-	    // text: "You've been bad!";
-	    text: widget-title;
-	    color: red;
-	    font-size: 32pt;
+	    text: "Keybindings:";
+	    color: white;
+	    font-size: 24px;
 	    horizontal-alignment: center;
 	}
 
-	Text {
-	    // text: "You can't start a timer with 0 seconds";
-	    text: widget-text;
-	    font-size: 18pt;
-	    horizontal-alignment: center;
-	}
 
-	
+	HorizontalLayout {
+	    alignment: center;
+	    GridLayout {
+		spacing-horizontal: 50px;
+		Row {
+		    Text {
+			// text: "You can't start a timer with 0 seconds";
+			text: "Q";
+			font-size: 15pt;
+			horizontal-alignment: left;
+		    }
+
+		    Text {
+			// text: "You can't start a timer with 0 seconds";
+			text: "Quit";
+			font-size: 15pt;
+			horizontal-alignment: left;
+		    }
+		}
+		Row {
+		    Text {
+			// text: "You can't start a timer with 0 seconds";
+			text: "M";
+			font-size: 15pt;
+			horizontal-alignment: left;
+		    }
+
+		    Text {
+			// text: "You can't start a timer with 0 seconds";
+			text: "Toggle fullscreen";
+			font-size: 15pt;
+			horizontal-alignment: left;
+		    }
+		}
+		Row {
+		    Text {
+			// text: "You can't start a timer with 0 seconds";
+			text: "Esc";
+			font-size: 15pt;
+			horizontal-alignment: left;
+		    }
+
+		    Text {
+			// text: "You can't start a timer with 0 seconds";
+			text: "Exit fullscreen";
+			font-size: 15pt;
+			horizontal-alignment: left;
+		    }
+		}
+		Row {
+		    Text {
+			// text: "You can't start a timer with 0 seconds";
+			text: "T";
+			font-size: 15pt;
+			horizontal-alignment: left;
+		    }
+
+		    Text {
+			// text: "You can't start a timer with 0 seconds";
+			text: "Toggle always-on-top, showed by small circle in top right corner";
+			font-size: 15pt;
+			horizontal-alignment: left;
+		    }
+		}
+	    }
+	}
     }
 }

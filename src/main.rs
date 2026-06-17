@@ -123,7 +123,6 @@ fn main() -> Result<(), slint::PlatformError> {
     info!("Starting schisaciaccole");
 
     let main_window = MainWindow::new().unwrap();
-    let start_with_zero_millis_window = StartWithZeroMillis::new().unwrap();
 
     let (opts_time, options) = compute_options();
     let options = Rc::new(VecModel::from(options));
@@ -131,6 +130,10 @@ fn main() -> Result<(), slint::PlatformError> {
     main_window.set_options(ModelRc::from(options.clone()));
 
     let app_state = Rc::new(RefCell::new(AppState { opts_time, options }));
+
+    let current_os = std::env::consts::OS;
+    let is_macos = current_os == "macos";
+    main_window.set_is_macos(is_macos);
 
     main_window.on_select_time({
         let window_weak = main_window.as_weak();
@@ -180,7 +183,6 @@ fn main() -> Result<(), slint::PlatformError> {
                 window.set_running_state(now_running);
             } else {
                 info!("start_pause: blocked, timer_time is 0");
-                let _ = start_with_zero_millis_window.run();
             }
         }
     });
@@ -246,6 +248,13 @@ fn main() -> Result<(), slint::PlatformError> {
                 window.set_is_fullscreen(!window.get_is_fullscreen());
                 window.window().set_fullscreen(window.get_is_fullscreen());
             }
+        }
+    });
+
+    main_window.on_help({
+        move || {
+            let help_window = Help::new().unwrap();
+            help_window.show().unwrap();
         }
     });
 
