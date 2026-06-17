@@ -33,6 +33,9 @@ export component MainWindow inherits Window {
     // default-font-family: "Chillax";
     forward-focus: scope;
 
+    property <bool> on-top: false;
+
+    always-on-top: on-top;
 
     property <float> ui-scale: Math.min(root.width / 526px, root.height / 326px);
 
@@ -40,8 +43,7 @@ export component MainWindow inherits Window {
     in-out property <bool>     running-state: false;
     in-out property <Page>     page: SelectionPage; 
     in property     <bool>     is_fullscreen: false;
-    in property     <[string]> time_options;
-
+    in property     <[TimeOption]> options;
 
     callback start-pause();
     callback stop(StopType);
@@ -50,7 +52,7 @@ export component MainWindow inherits Window {
     callback play-sound();
     callback set-selection-page();
     callback quit();
-    callback fullscreen();
+    callback fullscreen(bool);
 
     scope := FocusScope {
         KeyBinding {
@@ -60,7 +62,17 @@ export component MainWindow inherits Window {
 
         KeyBinding {
             keys: @keys(M);
-            activated => { fullscreen(); }
+            activated => { fullscreen(false); }
+        }
+
+        KeyBinding {
+            keys: @keys(Escape);
+            activated => { fullscreen(true); }
+        }
+
+        KeyBinding {
+            keys: @keys(T);
+            activated => { on-top = !on-top; }
         }
     }
 
@@ -97,6 +109,22 @@ export component MainWindow inherits Window {
         (minutes < 10 ? "0" : "") + minutes + ":" +
         (seconds < 10 ? "0" : "") + seconds;
 
+    // property <string> displayHour: 
+    //     hours >= 1 ? "0" + hours : "";
+    // property <string> displayMinute: 
+    //     (minutes < 10 ? "0" : "") + minutes;
+    // property <string> displaySeconds: 
+    //     (seconds < 10 ? "0" : "") + seconds;
+
+    if on-top : Rectangle {
+        width: 10px;
+        height: 5px;
+        x: root.width - self.width - 2px; // Aligns to the left
+        y: 2px; // Aligns to the top
+        background: #C682F5;
+        border-radius: self.width / 2; // Makes the rectangle a circle
+    }
+
 
 
     // render this if page is SelectionPage
@@ -114,12 +142,13 @@ export component MainWindow inherits Window {
 	GridLayout {
 	    spacing: 15px * ui-scale;
 
-	    for option[index] in root.time_options: SelectionButton {
+	    for option[index] in root.options: SelectionButton {
 		row: Math.floor(index / 4);
 		col: Math.mod(index, 4);
 
 		font-size: 18px * root.ui-scale;
-		text: option;
+		time: option.time;
+		minutes: option.minutes;
 		clicked => { select-time(index); }
 	    }
 	}

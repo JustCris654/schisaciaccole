@@ -11,26 +11,26 @@ slint::include_modules!();
 struct AppState {
     opts_time: Vec<DateTime<Local>>,
 
-    slint_model: Rc<VecModel<SharedString>>,
+    options: Rc<VecModel<TimeOption>>,
 }
 
 fn update_ui_options(state: &RefCell<AppState>) {
     let mut state = state.borrow_mut();
 
-    let (new_times, new_texts) = compute_options();
+    let (new_times, new_options) = compute_options();
 
-    debug!("compute_options refreshed {} options", new_texts.len());
+    debug!("compute_options refreshed {} options", new_options.len());
     state.opts_time = new_times;
-    state.slint_model.set_vec(new_texts);
+    state.options.set_vec(new_options);
 }
 
-fn compute_options() -> (Vec<DateTime<Local>>, Vec<SharedString>) {
+fn compute_options() -> (Vec<DateTime<Local>>, Vec<TimeOption>) {
     let now: DateTime<Local> = Local::now() + Duration::seconds(5);
     debug!("compute_options at {}", now.format("%H:%M:%S"));
 
-    let minutes_to_next_quarter = 15 - (now.minute() % 15);
+    let minutes_to_next_quarter = 15_i64 - (now.minute() % 15) as i64;
 
-    let first_target = (now + Duration::minutes(minutes_to_next_quarter as i64))
+    let first_target = (now + Duration::minutes(minutes_to_next_quarter))
         .with_second(0)
         .unwrap()
         .with_nanosecond(0)
@@ -39,9 +39,15 @@ fn compute_options() -> (Vec<DateTime<Local>>, Vec<SharedString>) {
     (0..8)
         .map(|i| {
             let time = first_target + Duration::minutes(i * 15);
+
             let text: SharedString = time.format("%H:%M").to_string().into();
 
-            (time, text)
+            let option = TimeOption {
+                time: text,
+                minutes: (minutes_to_next_quarter + 15 * i).to_string().into(),
+            };
+
+            (time, option)
         })
         .unzip()
 }
@@ -53,7 +59,6 @@ fn compute_options() -> (Vec<DateTime<Local>>, Vec<SharedString>) {
 ///   - macOS app: `<App>.app/Contents/Resources/assets/...` (exe is `.../MacOS/<name>`)
 ///     In dev, fall back to the crate dir baked in at compile time.
 fn sound_path(sound_asset_name: &str) -> Option<PathBuf> {
-
     let mut candidates: Vec<PathBuf> = Vec::new();
 
     if let Ok(exe) = std::env::current_exe() {
@@ -61,7 +66,10 @@ fn sound_path(sound_asset_name: &str) -> Option<PathBuf> {
             // next to the executable
             candidates.push(dir.join("assets").join(sound_asset_name));
             // linux pkg: /usr/bin/<name> -> /usr/lib/<name>/assets/<sound_asset_name>
-            candidates.push(dir.join("../lib/schisaciaccole/assets").join(sound_asset_name));
+            candidates.push(
+                dir.join("../lib/schisaciaccole/assets")
+                    .join(sound_asset_name),
+            );
             // macOS .app: Contents/MacOS/<name> -> Contents/Resources/assets/<sound_asset_name>
             candidates.push(dir.join("../Resources/assets").join(sound_asset_name));
         }
@@ -117,15 +125,12 @@ fn main() -> Result<(), slint::PlatformError> {
     let main_window = MainWindow::new().unwrap();
     let start_with_zero_millis_window = StartWithZeroMillis::new().unwrap();
 
-    let (opts_time, opts_text) = compute_options();
-    let slint_model = Rc::new(VecModel::from(opts_text));
+    let (opts_time, options) = compute_options();
+    let options = Rc::new(VecModel::from(options));
 
-    main_window.set_time_options(ModelRc::from(slint_model.clone()));
+    main_window.set_options(ModelRc::from(options.clone()));
 
-    let app_state = Rc::new(RefCell::new(AppState {
-        opts_time,
-        slint_model,
-    }));
+    let app_state = Rc::new(RefCell::new(AppState { opts_time, options }));
 
     main_window.on_select_time({
         let window_weak = main_window.as_weak();
@@ -231,11 +236,16 @@ fn main() -> Result<(), slint::PlatformError> {
     main_window.on_fullscreen({
         let window_weak = main_window.as_weak();
 
-        move || {
+        move |exit_fullscreen| {
             let window = window_weak.unwrap();
 
-            window.set_is_fullscreen(!window.get_is_fullscreen());
-            window.window().set_fullscreen(window.get_is_fullscreen());
+            if exit_fullscreen {
+                window.set_is_fullscreen(false);
+                window.window().set_fullscreen(false);
+            } else {
+                window.set_is_fullscreen(!window.get_is_fullscreen());
+                window.window().set_fullscreen(window.get_is_fullscreen());
+            }
         }
     });
 
