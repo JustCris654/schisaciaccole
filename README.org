@@ -149,6 +149,23 @@ sudo pacman -U schisaciaccole-*.pkg.tar.zst
 This installs the binary, the sound, the icon, a =.desktop= launcher and the
 license under the standard =/usr= paths.
 
+** Releases (CI)
+
+Pushing a tag =vX.Y.Z= that matches the =version= in =Cargo.toml= triggers
+=.github/workflows/release.yml=, which builds the =.deb=, the Arch package
+and an unsigned macOS =.app= (as a =.zip= and a =.dmg=) and attaches them all
+to a GitHub Release:
+
+#+begin_src sh
+git tag v0.1.0
+git push origin v0.1.0
+#+end_src
+
+A mismatched tag (e.g. tagging =v0.1.0= while =Cargo.toml= says =0.2.0=)
+fails the run before anything is built. The workflow can also be triggered
+manually (=workflow_dispatch=) to build and upload all three packages as
+run artifacts without cutting a release.
+
 * Logging
 
 The app uses =env_logger=. Control verbosity with the =RUST_LOG= environment

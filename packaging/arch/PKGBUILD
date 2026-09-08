@@ -13,16 +13,16 @@ pkgver=0.1.0
 pkgrel=1
 pkgdesc="Countdown timer for time-boxed Scrum ceremonies"
 arch=('x86_64')
-url="https://github.com/openmove/schisaciaccole"
+url="https://github.com/JustCris654/schisaciaccole"
 license=('MIT')
-depends=('fontconfig' 'libxkbcommon')
+depends=('alsa-lib' 'fontconfig' 'libxkbcommon')
 makedepends=('cargo')
 options=('!lto')
 
 # Resolve the repo root relative to this PKGBUILD.
 _projroot="$(realpath "$startdir/../..")"
 
-build() {
+prepare() {
   # Copy only the needed sources into a clean build dir under $srcdir.
   # Building here (not in $_projroot) keeps cargo's build-script fingerprint
   # scan away from makepkg's pkg/ dir, which it cannot read.
@@ -32,6 +32,12 @@ build() {
   cp -a "$_projroot"/{Cargo.toml,Cargo.lock,build.rs,src,ui,assets} "$b/"
 
   cd "$b"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$srcdir/$pkgname"
   export RUSTUP_TOOLCHAIN=stable
   export CARGO_TARGET_DIR="$srcdir/target"
   cargo build --release --frozen
