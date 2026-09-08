@@ -17,7 +17,7 @@ url="https://github.com/JustCris654/schisaciaccole"
 license=('MIT')
 depends=('alsa-lib' 'fontconfig' 'libxkbcommon')
 makedepends=('cargo')
-options=('!lto')
+options=('!lto' '!debug')
 
 # Resolve the repo root relative to this PKGBUILD.
 _projroot="$(realpath "$startdir/../..")"

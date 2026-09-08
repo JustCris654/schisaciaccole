@@ -54,10 +54,17 @@ jobs:
       - name: Build .deb
         run: cargo bundle --release --format deb
 
+      - name: Name the artifact after its target OS
+        run: |
+          set -euo pipefail
+          ver="${{ needs.version.outputs.version }}"
+          src=$(find target/release/bundle/deb -name '*.deb' -print -quit)
+          mv "$src" "target/release/bundle/deb/schisaciaccole-${ver}-ubuntu-amd64.deb"
+
       - uses: actions/upload-artifact@v4
         with:
           name: deb
-          path: target/release/bundle/deb/*.deb
+          path: target/release/bundle/deb/*-ubuntu-amd64.deb
           if-no-files-found: error
 
   arch:
@@ -82,10 +89,18 @@ jobs:
           cd packaging/arch
           sudo -u builder makepkg -f
 
+      - name: Name the artifact after its target OS
+        run: |
+          set -euo pipefail
+          ver="${{ needs.version.outputs.version }}"
+          cd packaging/arch
+          src=$(find . -maxdepth 1 -name '*.pkg.tar.zst' -print -quit)
+          mv "$src" "schisaciaccole-${ver}-arch-x86_64.pkg.tar.zst"
+
       - uses: actions/upload-artifact@v4
         with:
           name: arch
-          path: packaging/arch/*.pkg.tar.zst
+          path: packaging/arch/*-arch-x86_64.pkg.tar.zst
           if-no-files-found: error
 
   macos:
@@ -115,15 +130,15 @@ jobs:
             exit 1
           fi
           echo "bundled app: $app"
-          ditto -c -k --keepParent "$app" "Schisaciaccole-${ver}-arm64.zip"
-          hdiutil create -volname Schisaciaccole -srcfolder "$app" -ov -format UDZO "Schisaciaccole-${ver}-arm64.dmg"
+          ditto -c -k --keepParent "$app" "schisaciaccole-${ver}-macos-arm64.zip"
+          hdiutil create -volname Schisaciaccole -srcfolder "$app" -ov -format UDZO "schisaciaccole-${ver}-macos-arm64.dmg"
 
       - uses: actions/upload-artifact@v4
         with:
           name: macos
           path: |
-            Schisaciaccole-*-arm64.zip
-            Schisaciaccole-*-arm64.dmg
+            schisaciaccole-*-macos-arm64.zip
+            schisaciaccole-*-macos-arm64.dmg
           if-no-files-found: error
 
   release:
