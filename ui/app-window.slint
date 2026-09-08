@@ -38,13 +38,109 @@ component SelectionButton inherits VerticalBox {
     }
 }
 
+export component TimerPage {
+    in property<float> ui-scale;
+    in-out property <duration> timer-time;
+    in-out property <bool> running-state;
+
+    callback stop(StopType);
+    callback play-sound();
+
+    timer := Timer {
+	interval  : 1s;
+	running: running-state;
+	
+	triggered() => {
+	    if (running-state) {
+		timer-time -= 1s;
+		if (timer-time <= 0) {
+		    stop(StopType.TimerFinished);
+		    play-sound();
+		}
+	    } 
+	}
+    }
+
+    property <int> hours  : Math.floor(timer-time / 60s / 60);
+    property <int> minutes: Math.floor(Math.mod(timer-time / 60s, 60));
+    property <int> seconds: Math.mod(timer-time / 1s, 60);
+    property <string> displayTimer: 
+        (hours >= 1 ? "0" + hours + ":" : "") +
+        (minutes < 10 ? "0" : "") + minutes + ":" +
+        (seconds < 10 ? "0" : "") + seconds;
+
+    VerticalBox {
+	alignment: center;
+	padding: 25px * ui-scale;
+
+
+	Text {
+	    text: displayTimer;
+	    color: #C682F5;
+	    font-size: 100px * root.ui-scale;
+	    horizontal-alignment: center;
+	}
+
+	// HorizontalBox {
+	//     alignment: center;
+	//     if displayHour != "" : HorizontalBox {
+	// 	Text {
+	// 	    text: displayHour;
+	// 	    color: #C682F5;
+	// 	    font-size: 100px * root.ui-scale;
+	// 	    horizontal-alignment: center;
+	// 	}
+	// 	Text {
+	// 	    text: ":";
+	// 	    color: #C682F5;
+	// 	    font-size: 100px * root.ui-scale;
+	// 	    horizontal-alignment: center;
+	// 	}
+	//     }
+
+	//     Text {
+	// 	text: displayMinute;
+	// 	color: #C682F5;
+	// 	font-size: 100px * root.ui-scale;
+	// 	horizontal-alignment: center;
+	//     }
+	//     Text {
+	// 	text: ":";
+	// 	color: #C682F5;
+	// 	font-size: 100px * root.ui-scale;
+	// 	horizontal-alignment: center;
+	//     }
+	//     Text {
+	// 	text: displaySeconds;
+	// 	color: #C682F5;
+	// 	font-size: 100px * root.ui-scale;
+	// 	horizontal-alignment: center;
+	//     }
+	// }
+
+	HorizontalBox {
+	    alignment: center;
+
+	    // Button {
+	    // 	text: running-state ? "Pause" : "Start";
+	    // 	clicked => { start-pause(); }
+	    // }
+
+	    Button {
+		text: "Stop";
+		clicked => { stop(StopType.UserStopped); }
+	    }
+	}
+    }
+}
+
 export component MainWindow inherits Window {
     title: "Schisaciaccole";
     icon: @image-url("../assets/icon_256.png");
     preferred-width: 526px; 
     preferred-height: 326px;
-    default-font-family: "Plus Jakarta Sans";
-    // default-font-family: "Chillax";
+    // default-font-family: "Plus Jakarta Sans";
+    default-font-family: "Chillax";
     forward-focus: scope;
 
     property <bool> on-top: false;
@@ -56,12 +152,10 @@ export component MainWindow inherits Window {
     in-out property <duration> timer-time: 3s;
     in-out property <bool>     running-state: false;
     in-out property <Page>     page: SelectionPage; 
-    in property     <bool>     is_fullscreen: false;
     in property     <[TimeOption]> options;
     in property     <bool>     is-macos;
 
     callback start-pause();
-    callback stop(StopType);
     callback select-time(int);
     callback compute-options();
     callback play-sound();
@@ -69,6 +163,7 @@ export component MainWindow inherits Window {
     callback quit();
     callback fullscreen(bool);
     callback help();
+    callback stop(StopType);
 
     if is-macos: MenuBar {
 	Menu {
@@ -108,20 +203,6 @@ export component MainWindow inherits Window {
         }
     }
 
-    timer := Timer {
-	interval  : 1s;
-	running: running-state;
-	
-	triggered() => {
-	    if (running-state) {
-		timer-time -= 1s;
-		if (timer-time <= 0) {
-		    stop(StopType.TimerFinished);
-		    play-sound();
-		}
-	    } 
-	}
-    }
 
     compute-options-timer := Timer {
 	interval  : 3s;
@@ -133,13 +214,6 @@ export component MainWindow inherits Window {
 	}
     }
 
-    property <int> hours  : Math.floor(timer-time / 60s / 60);
-    property <int> minutes: Math.floor(Math.mod(timer-time / 60s, 60));
-    property <int> seconds: Math.mod(timer-time / 1s, 60);
-    property <string> displayTimer: 
-        (hours >= 1 ? "0" + hours + ":" : "") +
-        (minutes < 10 ? "0" : "") + minutes + ":" +
-        (seconds < 10 ? "0" : "") + seconds;
 
     // property <string> displayHour: 
     //     hours >= 1 ? "0" + hours : "";
@@ -187,31 +261,12 @@ export component MainWindow inherits Window {
     }
 
     // render this if page is TimerPage
-    if page == Page.TimerPage : VerticalBox {
-	alignment: center;
-	padding: 25px * ui-scale;
-
-
-	Text {
-	    text: displayTimer;
-	    color: #C682F5;
-	    font-size: 100px * root.ui-scale;
-	    horizontal-alignment: center;
-	}
-
-	HorizontalBox {
-	    alignment: center;
-
-	    // Button {
-	    // 	text: running-state ? "Pause" : "Start";
-	    // 	clicked => { start-pause(); }
-	    // }
-
-	    Button {
-		text: "Stop";
-		clicked => { stop(StopType.UserStopped); }
-	    }
-	}
+    if page == Page.TimerPage : TimerPage {
+	ui-scale: root.ui-scale;
+	timer-time <=> root.timer-time;
+	running-state <=> root.running-state;
+	stop(stop-type) => { root.stop(stop-type); }
+	play-sound => { root.play-sound(); }
     }
 
     
@@ -248,6 +303,7 @@ export component MainWindow inherits Window {
 }
 
 
+
 export component Help inherits Window {
     title: "Schisaciaccole";
     preferred-width: 526px; 
@@ -268,7 +324,6 @@ export component Help inherits Window {
 	    font-size: 24px;
 	    horizontal-alignment: center;
 	}
-
 
 	HorizontalLayout {
 	    alignment: center;

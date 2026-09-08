@@ -240,13 +240,14 @@ fn main() -> Result<(), slint::PlatformError> {
 
         move |exit_fullscreen| {
             let window = window_weak.unwrap();
+            let window = window.window();
+
+            let is_window_fullscreen = window.is_fullscreen();
 
             if exit_fullscreen {
-                window.set_is_fullscreen(false);
-                window.window().set_fullscreen(false);
+                window.set_fullscreen(false);
             } else {
-                window.set_is_fullscreen(!window.get_is_fullscreen());
-                window.window().set_fullscreen(window.get_is_fullscreen());
+                window.set_fullscreen(!is_window_fullscreen);
             }
         }
     });

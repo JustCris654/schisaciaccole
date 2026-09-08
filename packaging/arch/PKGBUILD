@@ -33,13 +33,14 @@ build() {
 
   cd "$b"
   export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR="$srcdir/target"
   cargo build --release --frozen
 }
 
 package() {
   local b="$srcdir/$pkgname"
 
-  install -Dm755 "$b/target/release/$pkgname"  "$pkgdir/usr/bin/$pkgname"
+  install -Dm755 "$srcdir/target/release/$pkgname"  "$pkgdir/usr/bin/$pkgname"
   install -Dm644 "$b/assets/game_over.mp3"     "$pkgdir/usr/lib/$pkgname/assets/game_over.mp3"
   install -Dm644 "$b/assets/icon_128.png"      "$pkgdir/usr/share/icons/hicolor/128x128/apps/$pkgname.png"
   install -Dm644 "$b/assets/icon_256.png"      "$pkgdir/usr/share/icons/hicolor/256x256/apps/$pkgname.png"
