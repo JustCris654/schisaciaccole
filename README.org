@@ -133,8 +133,6 @@ the native =cargo bundle= build.
 
 ** Arch Linux (pacman)
 
-pacman can't install a =.deb=. Use the bundled PKGBUILD instead.
-
 #+begin_quote
 *Run =makepkg= from inside =packaging/arch/=, never from the repo root.*
 makepkg uses =./src= and =./pkg= as its work dirs — at the repo root =./src=
